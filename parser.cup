@@ -1,0 +1,59 @@
+import java_cup.runtime.*;
+
+// --- TERMINAIS ---
+
+// Palavras Reservadas
+terminal PROGRAM, CLASS, FINAL, INT, FLOAT, VOID, MAIN, NEW, PRINT, READ, RETURN, IF, ELSE, WHILE;
+
+// Símbolos (pontuação e operadores)
+terminal ACHAVES, FCHAVES, APARENTESES, FPARENTESES, ACOLCHETES, FCOLCHETES;
+terminal PTVIRG, VIRGULA, PONTO;
+terminal IGUAL, DIFERENTE, MAIORIGUAL, MENORIGUAL, MAIOR, MENOR, ATRIBUICAO;
+terminal MAIS, MENOS, MULTIPLICACAO, DIVISAO;
+
+// Tipos com valores semânticos (conforme definimos no scanner.flex)
+terminal String  IDENT, NUM_HEX;
+terminal Float   NUM_REAL;
+terminal Integer INTEIRO;
+
+
+// --- NÃO TERMINAIS ---
+
+non terminal program, statement_list, statement;
+non terminal expr;
+
+
+// --- PRECEDÊNCIAS ---
+precedence left MAIS, MENOS;
+precedence left MULTIPLICACAO, DIVISAO;
+
+
+// --- REGRA INICIAL ---
+start with program;
+
+
+// --- REGRAS DE PRODUÇÃO DA GRAMÁTICA ---
+
+program ::= statement_list
+          ;
+
+statement_list ::= statement_list statement
+                 | statement
+                 ;
+
+// Exemplos de statements básicos para iniciar
+statement ::= expr PTVIRG
+            | PRINT APARENTESES expr FPARENTESES PTVIRG
+            | READ APARENTESES IDENT FPARENTESES PTVIRG
+            ;
+
+// Expressões básicas (com os identificadores e literais tipados)
+expr ::= expr MAIS expr
+       | expr MENOS expr
+       | expr MULTIPLICACAO expr
+       | expr DIVISAO expr
+       | APARENTESES expr FPARENTESES
+       | INTEIRO
+       | NUM_REAL
+       | IDENT
+       ;

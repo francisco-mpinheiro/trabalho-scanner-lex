@@ -1,99 +1,20 @@
-program TesteCompleto {
-  
-  class Operacoes {
-    int valor1;
-    float valor2;
-  }
+/* 
+ * Arquivo de teste atualizado para o Parser inicial.
+ * No momento, a nossa gramatica em parser.cup suporta:
+ * - Leitura de variaveis simples: read(x);
+ * - Expressoes matematicas com precedencia e parenteses
+ * - Impressao de expressoes: print(expr);
+ */
 
-  /* * COMENTÁRIO GIGANTE
-   * Testando o bloco de múltiplas linhas
-   * com vários asteriscos ***** e quebras de linha
-   */
-  
-  final int maximo = 0xFF;
-  final float limite = 100.0;
+/* Lendo uma variavel */
+read(minhavariavel);
 
-  void main() {
-    Operacoes op;
-    op = new Operacoes;
-    
-    // Pegadinha: Palavras reservadas misturadas com identificadores
-    int intx;
-    float floaty;
-    
-    intx = 0;
-    
-    read(op.valor1);
+/* Expressoes matematicas basicas (operadores e precedencia) */
+10 + 20 * 3;
 
-    // Teste de Controle de Fluxo: Seleção (if / else) e operadores relacionais
-    if (op.valor1 >= maximo) {
-      print(op.valor1);
-    } else {
-      
-      // Teste de Controle de Fluxo: Repetição (while)
-      while (intx < 10) {
-        intx = intx + 1;
-        op.valor2 = op.valor2 + 0.5;
-      }
-      
-    }
-    
-    // Teste de operadores matemáticos e sequências de parênteses
-    op.valor1 = (((intx * 5) - 2) / 1);
-    
-    if (op.valor1 != 0x0A) {
-      print(op.valor2, 3.14);
-    }
+(10 + 20) / 2;
 
-    return;
-  }
-}program TesteCompleto {
-  
-  class Operacoes {
-    int valor1;
-    float valor2;
-  }
+minhavariavel - 5.5;
 
-  /* * COMENTÁRIO GIGANTE
-   * Testando o bloco de múltiplas linhas
-   * com vários asteriscos ***** e quebras de linha
-   */
-  
-  final int maximo = 0xFF;
-  final float limite = 100.0;
-
-  void main() {
-    Operacoes op;
-    op = new Operacoes;
-    
-    // Pegadinha: Palavras reservadas misturadas com identificadores
-    int intx;
-    float floaty;
-    
-    intx = 0;
-    
-    read(op.valor1);
-
-    // Teste de Controle de Fluxo: Seleção (if / else) e operadores relacionais
-    if (op.valor1 >= maximo) {
-      print(op.valor1);
-    } else {
-      
-      // Teste de Controle de Fluxo: Repetição (while)
-      while (intx < 10) {
-        intx = intx + 1;
-        op.valor2 = op.valor2 + 0.5;
-      }
-      
-    }
-    
-    // Teste de operadores matemáticos e sequências de parênteses
-    op.valor1 = (((intx * 5) - 2) / 1);
-    
-    if (op.valor1 != 0x0A) {
-      print(op.valor2, 3.14);
-    }
-
-    return;
-  }
-}
+/* Testando o comando print com uma expressao complexa */
+print(minhavariavel * 2 + 100.5);
