@@ -1,0 +1,147 @@
+import java_cup.runtime.*;
+
+parser code {: 
+    public boolean deveExecutarBloco = false; 
+    public boolean usandoVariavel = false; 
+    
+    public void defineErro(int linha, int coluna, String texto) {
+        Scanner sc = (Scanner) this.getScanner();
+        sc.defineErro(linha, coluna, texto);
+    }
+:}
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD, IGUAL;
+terminal String OP_RELACIONAL;
+terminal ABRE_PARENT, FECHA_PARENT, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH;
+terminal KW_PROGRAM, KW_IF, KW_ELSE, KW_WHILE, KW_FOR, KW_DO;
+terminal KW_TRUE, KW_FALSE;
+terminal Number NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_ptv;
+non terminal Number expr, term, factor, designator;
+non terminal type, varDecl_op, varDecl, varDecl_aux;
+non terminal statement, statement_aux, program;
+non terminal if_stmt, condicao, else_stmt;
+non terminal while_stmt;
+non terminal for_stmt, for_init, for_step;
+non terminal do_while_stmt;
+
+/* REGRAS DE PRODUÇÃO */
+program ::= KW_PROGRAM IDENT varDecl_aux ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+type ::= IDENT ABRE_COLCH FECHA_COLCH
+       | IDENT ;
+
+varDecl_aux ::= varDecl varDecl_aux
+              | /* vazio */ ;
+
+varDecl ::= type IDENT:id varDecl_op PTVIRG;
+
+varDecl_op ::= varDecl_op VIRG IDENT:id
+             | /* vazio */ ;
+
+statement_aux ::= statement_aux statement
+                | statement ;
+
+statement ::= expr_ptv
+            | designator:d IGUAL expr:e PTVIRG
+            | if_stmt 
+            | while_stmt
+            | for_stmt
+            | do_while_stmt ;
+
+/* REGRA DO IF/ELSE */
+if_stmt ::= KW_IF ABRE_PARENT condicao FECHA_PARENT ABRE_CHAVE statement_aux FECHA_CHAVE else_stmt
+          // CAPTURANDO ERRO DE IF SEM PARENTESES
+          | KW_IF condicao:c 
+            {: parser.defineErro(cleft, cright, "IF sem parenteses"); :} 
+            ABRE_CHAVE statement_aux FECHA_CHAVE else_stmt ;
+
+else_stmt ::= {: parser.deveExecutarBloco = !parser.deveExecutarBloco; :}
+              KW_ELSE ABRE_CHAVE statement_aux FECHA_CHAVE
+            | /* vazio */ ;
+
+/* WHILE */
+while_stmt ::= KW_WHILE ABRE_PARENT condicao FECHA_PARENT ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+/* FOR */
+for_stmt ::= {: parser.deveExecutarBloco = true; :}
+             KW_FOR ABRE_PARENT for_init condicao PTVIRG for_step FECHA_PARENT
+             ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+for_init ::= designator IGUAL expr PTVIRG | PTVIRG ;
+for_step ::= designator IGUAL expr | /* vazio */ ;
+
+/* DO-WHILE */
+do_while_stmt ::= {: parser.deveExecutarBloco = true; :}
+                  KW_DO ABRE_CHAVE statement_aux FECHA_CHAVE
+                  KW_WHILE ABRE_PARENT condicao FECHA_PARENT PTVIRG ;
+
+condicao ::= expr:e1 OP_RELACIONAL:op expr:e2 {: 
+                boolean resultado = false;
+                double val1 = e1.doubleValue();
+                double val2 = e2.doubleValue();
+                
+                switch (op) {
+                    case "<": resultado = (val1 < val2); break;
+                    case "<=": resultado = (val1 <= val2); break;
+                    case ">": resultado = (val1 > val2); break;
+                    case ">=": resultado = (val1 >= val2); break;
+                    case "==": resultado = (val1 == val2); break;
+                    case "!=": resultado = (val1 != val2); break;
+                }
+                parser.deveExecutarBloco = resultado;
+             :}
+             | KW_TRUE {: parser.deveExecutarBloco = true; :}
+             | KW_FALSE {: parser.deveExecutarBloco = false; :}
+             | /*azio*/ {: parser.deveExecutarBloco = true; :} ;
+
+expr_ptv ::= expr:e PTVIRG;
+
+expr ::= expr:e MAIS term:t {: RESULT = e.doubleValue() + t.doubleValue(); :}
+       | expr:e MENOS term:t {: RESULT = e.doubleValue() - t.doubleValue(); :}
+       | MENOS term:t {: RESULT = -t.doubleValue(); :}
+       | term:t {: RESULT = t; :}
+       // CAPTURANDO ERRO DE EXPRESSAO SEM OPERADOR
+       | expr:e {: parser.defineErro(eleft, eright, "Expressao sem operador."); :} term ;
+
+term ::= factor:f MULT term:t {: RESULT = f.doubleValue() * t.doubleValue(); :}
+       | factor:f DIV term:t {: 
+            double den = t.doubleValue();
+            if (den == 0) {
+                // ROTEIRO 9: ERRO SEMÂNTICO (NOTIFICAR EM VEZ DE PEDIR)
+                parser.defineErro(tleft, tright, "Divisao por zero.");
+                den = 1.0; 
+            }
+            RESULT = f.doubleValue() / den; 
+         :}
+       | factor:f MOD term:t {: 
+            if (f instanceof Integer && t instanceof Integer) {
+                RESULT = f.intValue() % t.intValue();
+            } else {
+                parser.defineErro(fleft, tright, "A operacao MOD (%) so esta definida para Inteiros!");
+                RESULT = 0; 
+            }
+         :}
+       | factor:f {: RESULT = f; :};
+
+factor ::= NUMBER:n {: RESULT = n; :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e; :}
+         | designator:d {: RESULT = d; :};
+
+designator ::= designator:d ABRE_COLCH expr:e FECHA_COLCH {: 
+                double index = e.doubleValue();
+                if (index < 0) {
+                    parser.defineErro(dleft, dright, "Indice do vetor nao pode ser negativo!");
+                }
+                RESULT = Double.valueOf(1.0);
+            :}
+             | designator PTO IDENT {: 
+                RESULT = Double.valueOf(1.0);
+            :}
+             | IDENT:id {: 
+                RESULT = Double.valueOf(1.0); // Simplificado para evitar travar a execução no Roteiro 9
+            :};

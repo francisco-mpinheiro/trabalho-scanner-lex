@@ -1,0 +1,79 @@
+import java.util.Scanner;
+import java_cup.runtime.*;
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD, IGUAL, OP_RELACIONAL;
+terminal ABRE_PARENT, FECHA_PARENT, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH;
+terminal KW_PROGRAM;
+terminal Double NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_ptv;
+non terminal Double expr, term, factor, designator;
+non terminal type, varDecl_op, varDecl, varDecl_aux;
+non terminal statement, statement_aux, program;
+
+/* REGRAS DE PRODUÇÃO */
+program ::= KW_PROGRAM IDENT varDecl_aux ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+type ::= IDENT ABRE_COLCH FECHA_COLCH
+       | IDENT ;
+
+varDecl_aux ::= varDecl varDecl_aux
+              | /* vazio */ ;
+
+varDecl ::= type IDENT:id
+            {: System.out.print("Declaracao variavel:" + id); :}
+            varDecl_op PTVIRG
+            // so para dar uma quebra de linha
+            {: System.out.println(""); :};
+
+varDecl_op ::= varDecl_op VIRG IDENT:id
+               {: System.out.print(", " + id); :}
+             | /* vazio */ ;
+
+statement_aux ::= statement_aux statement
+                | statement ;
+
+statement ::= expr_ptv
+            | designator IGUAL expr:e PTVIRG
+              {: System.out.println ("Atribuicao reconhecida: " + e); :} ;
+
+expr_ptv ::= expr:e {: System.out.println("= " + e); :} PTVIRG;
+
+expr ::= expr:e MAIS term:t {: RESULT = e + t; :}
+       | expr:e MENOS term:t {: RESULT = e - t; :}
+       | MENOS term:t {: RESULT = -t; :}
+       | term:t {: RESULT = t.doubleValue(); :};
+
+term ::= factor:f MULT term:t {: RESULT = f * t; :}
+       | factor:f DIV term:t {: RESULT = f / t; :}
+       | factor:f {: RESULT = f.doubleValue(); :};
+
+factor ::= NUMBER:n {: RESULT = n.doubleValue(); :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e.doubleValue(); :}
+         | designator:d {: RESULT = d.doubleValue(); :};
+
+designator ::= designator ABRE_COLCH expr:e FECHA_COLCH {: 
+                double index = e.doubleValue();
+                if (index < 0) {
+                    System.out.println("ERRO DE SEMÂNTICA: Índice do vetor não pode ser negativo!");
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.print("Informe um NOVO valor válido (>= 0) para o índice: ");
+                        index = ler.nextDouble();
+                    } while (index < 0);
+                }
+                RESULT = Double.valueOf(1.0); /* Apenas para efeito de teste */
+            :}
+             | designator PTO IDENT {: 
+                RESULT = Double.valueOf(1.0); /* Apenas para efeito de teste */
+            :}
+             | IDENT:id {: 
+                Scanner ler = new Scanner(System.in);
+                double num1;
+                System.out.print("Informe o valor da variavel (" + id + "): ");
+                num1 = ler.nextDouble();
+                RESULT = num1;
+            :};

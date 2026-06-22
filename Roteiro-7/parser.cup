@@ -1,0 +1,147 @@
+import java.util.Scanner;
+import java_cup.runtime.*;
+
+parser code {: 
+    public boolean deveExecutarBloco = false; 
+    public boolean usandoVariavel = false; 
+:}
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD, IGUAL;
+terminal String OP_RELACIONAL;
+terminal ABRE_PARENT, FECHA_PARENT, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH;
+terminal KW_PROGRAM, KW_IF, KW_ELSE;
+terminal KW_TRUE, KW_FALSE;
+terminal Number NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_ptv;
+non terminal Number expr, term, factor, designator;
+non terminal type, varDecl_op, varDecl, varDecl_aux;
+non terminal statement, statement_aux, program;
+non terminal if_stmt, condicao, else_stmt;
+
+/* REGRAS DE PRODUÇÃO */
+program ::= KW_PROGRAM IDENT varDecl_aux ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+type ::= IDENT ABRE_COLCH FECHA_COLCH
+       | IDENT ;
+
+varDecl_aux ::= varDecl varDecl_aux
+              | /* vazio */ ;
+
+varDecl ::= type IDENT:id
+            varDecl_op PTVIRG;
+
+varDecl_op ::= varDecl_op VIRG IDENT:id
+             | /* vazio */ ;
+
+statement_aux ::= statement_aux statement
+                | statement ;
+
+statement ::= expr_ptv
+            | designator:d IGUAL expr:e PTVIRG
+            | if_stmt ;
+
+/* REGRA DO IF/ELSE (ROTEIRO 7) */
+if_stmt ::= {: System.out.print("if("); :}
+            KW_IF ABRE_PARENT condicao FECHA_PARENT
+            ABRE_CHAVE {: System.out.println("){"); :}
+            statement_aux
+            FECHA_CHAVE {: System.out.println("}"); :}
+            else_stmt ;
+
+else_stmt ::= {: 
+                // Inverte deveExecutarBloco para que apenas o "else" seja executado.
+                parser.deveExecutarBloco = !parser.deveExecutarBloco;
+                System.out.println("else{");
+              :}
+              KW_ELSE ABRE_CHAVE statement_aux FECHA_CHAVE {: System.out.println("}"); :}
+            | /* vazio */ ;
+
+condicao ::= expr:e1 OP_RELACIONAL:op expr:e2 {: 
+                boolean resultado = false;
+                double val1 = e1.doubleValue();
+                double val2 = e2.doubleValue();
+                
+                switch (op) {
+                    case "<": resultado = (val1 < val2); break;
+                    case "<=": resultado = (val1 <= val2); break;
+                    case ">": resultado = (val1 > val2); break;
+                    case ">=": resultado = (val1 >= val2); break;
+                    case "==": resultado = (val1 == val2); break;
+                    case "!=": resultado = (val1 != val2); break;
+                    default: System.out.print("*Simbolo desconhecido*");
+                }
+                parser.deveExecutarBloco = resultado;
+                System.out.print(resultado);
+             :}
+             | KW_TRUE {: 
+                parser.deveExecutarBloco = true;
+                System.out.print("true"); 
+             :}
+             | KW_FALSE {: 
+                parser.deveExecutarBloco = false;
+                System.out.print("false"); 
+             :}
+             ;
+
+expr_ptv ::= expr:e {: 
+                // ATIVIDADE ROTEIRO 7: Só imprime se deveExecutarBloco for true
+                if (parser.deveExecutarBloco) {
+                    System.out.println("  = " + e); 
+                }
+             :} PTVIRG;
+
+expr ::= expr:e MAIS term:t {: RESULT = e.doubleValue() + t.doubleValue(); :}
+       | expr:e MENOS term:t {: RESULT = e.doubleValue() - t.doubleValue(); :}
+       | MENOS term:t {: RESULT = -t.doubleValue(); :}
+       | term:t {: RESULT = t; :};
+
+term ::= factor:f MULT term:t {: RESULT = f.doubleValue() * t.doubleValue(); :}
+       | factor:f DIV term:t {: 
+            double den = t.doubleValue();
+            if (den == 0 && parser.deveExecutarBloco) {
+                if (parser.usandoVariavel) {
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.println("ERRO DE SEMANTICA: O denominador nao pode ser zero!");
+                        System.out.print("Informe um novo valor para o denominador: ");
+                        den = ler.nextDouble();
+                    } while (den == 0);
+                } else {
+                    den = 1.0; 
+                }
+            }
+            if (den == 0) den = 1.0; // Fallback se deveExecutarBloco=false
+            RESULT = f.doubleValue() / den; 
+         :}
+       | factor:f MOD term:t {: 
+            if (f instanceof Integer && t instanceof Integer) {
+                RESULT = f.intValue() % t.intValue();
+            } else {
+                RESULT = 0; 
+            }
+         :}
+       | factor:f {: RESULT = f; :};
+
+factor ::= NUMBER:n {: 
+             parser.usandoVariavel = false; 
+             RESULT = n; 
+         :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e; :}
+         | designator:d {: RESULT = d; :};
+
+designator ::= designator ABRE_COLCH expr:e FECHA_COLCH {: 
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0);
+            :}
+             | designator PTO IDENT {: 
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0);
+            :}
+             | IDENT:id {: 
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0); // Simplificando para não bloquear a leitura top-down
+            :};

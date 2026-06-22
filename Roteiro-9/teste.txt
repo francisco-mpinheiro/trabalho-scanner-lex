@@ -1,0 +1,19 @@
+program p
+  int a;
+{
+  // Testando erro lexer (símbolo desconhecido '@')
+  a = 1 @ 2;
+
+  // Testando erro sintático 1 (expressão sem operador)
+  10 5;
+  
+  // Testando erro sintático 2 (if sem parenteses)
+  if 10 < 3 {
+     1 + 2;
+  } else {
+     3 + 4;
+  }
+
+  // Testando erro semântico (divisão por zero)
+  5 / 0;
+}

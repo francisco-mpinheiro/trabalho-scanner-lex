@@ -1,0 +1,131 @@
+import java.util.Scanner;
+import java_cup.runtime.*;
+
+parser code {: 
+    public int contador = 0;
+    public double somatorio = 0.0;
+    public boolean usandoVariavel = false; // Atividade 1
+    
+    public void imprimirRelatorio() {
+        System.out.println("Foram reconhecidas e computadas:");
+        System.out.println(this.contador + " expressoes");
+        System.out.println("Cujo somatorio foi: " + this.somatorio);
+    }
+:}
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD, IGUAL, OP_RELACIONAL;
+terminal ABRE_PARENT, FECHA_PARENT, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH;
+terminal KW_PROGRAM;
+terminal Number NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_ptv;
+non terminal Number expr, term, factor, designator;
+non terminal type, varDecl_op, varDecl, varDecl_aux;
+non terminal statement, statement_aux, program;
+
+/* REGRAS DE PRODUÇÃO */
+program ::= KW_PROGRAM IDENT varDecl_aux ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+type ::= IDENT ABRE_COLCH FECHA_COLCH
+       | IDENT ;
+
+varDecl_aux ::= varDecl varDecl_aux
+              | /* vazio */ ;
+
+varDecl ::= type IDENT:id
+            {: System.out.print("Declaracao variavel:" + id); :}
+            varDecl_op PTVIRG
+            {: System.out.println(""); :};
+
+varDecl_op ::= varDecl_op VIRG IDENT:id
+               {: System.out.print(", " + id); :}
+             | /* vazio */ ;
+
+statement_aux ::= statement_aux statement
+                | statement ;
+
+statement ::= expr_ptv
+            | designator:d IGUAL expr:e PTVIRG
+              {: System.out.println ("Atribuicao reconhecida: " + e); :} ;
+
+expr_ptv ::= expr:e {: 
+                parser.contador++;
+                parser.somatorio += e.doubleValue();
+                System.out.println("= " + e); 
+             :} PTVIRG;
+
+expr ::= expr:e MAIS term:t {: RESULT = e.doubleValue() + t.doubleValue(); :}
+       | expr:e MENOS term:t {: RESULT = e.doubleValue() - t.doubleValue(); :}
+       | MENOS term:t {: RESULT = -t.doubleValue(); :}
+       | term:t {: RESULT = t; :};
+
+term ::= factor:f MULT term:t {: RESULT = f.doubleValue() * t.doubleValue(); :}
+       | factor:f DIV term:t {: 
+            double den = t.doubleValue();
+            // ATIVIDADE 1: Divisão por Zero com Variáveis
+            if (den == 0) {
+                if (parser.usandoVariavel) {
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.println("ERRO DE SEMANTICA: O denominador de variavel nao pode ser zero!");
+                        System.out.print("Informe um novo valor para o denominador: ");
+                        den = ler.nextDouble();
+                    } while (den == 0);
+                } else {
+                    System.out.println("ERRO DE SEMANTICA: Divisao literal por zero! (Operacao abortada)");
+                    den = 1.0; // Evita crash
+                }
+            }
+            RESULT = f.doubleValue() / den; 
+         :}
+       // ATIVIDADE 2: O MOD só funciona com Inteiros!
+       | factor:f MOD term:t {: 
+            if (f instanceof Integer && t instanceof Integer) {
+                RESULT = f.intValue() % t.intValue();
+            } else {
+                System.out.println("ERRO DE SEMANTICA: A operacao MOD (%) so esta definida para Inteiros!");
+                RESULT = 0; // Valor fallback
+            }
+         :}
+       | factor:f {: RESULT = f; :};
+
+factor ::= NUMBER:n {: 
+             parser.usandoVariavel = false; // Registra que é literal
+             RESULT = n; 
+         :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e; :}
+         | designator:d {: RESULT = d; :};
+
+designator ::= designator ABRE_COLCH expr:e FECHA_COLCH {: 
+                double index = e.doubleValue();
+                if (index < 0) {
+                    System.out.println("ERRO DE SEMANTICA: Indice do vetor nao pode ser negativo!");
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.print("Informe um NOVO valor valido (>= 0) para o indice: ");
+                        index = ler.nextDouble();
+                    } while (index < 0);
+                }
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0);
+            :}
+             | designator PTO IDENT {: 
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0);
+            :}
+             | IDENT:id {: 
+                Scanner ler = new Scanner(System.in);
+                double num1;
+                System.out.print("Informe o valor da variavel (" + id + "): ");
+                num1 = ler.nextDouble();
+                parser.usandoVariavel = true;
+                // Retorna Integer ou Double dependendo se tem decimais (ajuda no MOD)
+                if (num1 % 1 == 0) {
+                    RESULT = Integer.valueOf((int)num1);
+                } else {
+                    RESULT = Double.valueOf(num1);
+                }
+            :};

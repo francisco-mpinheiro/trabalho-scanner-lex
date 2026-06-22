@@ -1,0 +1,20 @@
+program p
+  int a;
+  int i;
+{
+  // Testando While (Exercício 1)
+  while(i < 10){
+    1 + 2;
+    3 - 2 * 4;
+  }
+
+  // Testando For (Exercício 2)
+  for (i = 0; i < 5; i = i + 1) {
+    4 + a;
+  }
+
+  // Testando Do-While (Exercício 3)
+  do {
+    2 + 3;
+  } while (i < 10);
+}

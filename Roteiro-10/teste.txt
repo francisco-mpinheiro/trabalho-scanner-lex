@@ -1,0 +1,18 @@
+program p
+  int a;
+{
+  // Exercicio 1: Erro de condição sem operador lógico (vai usar o error de condicao)
+  if (10 5) {
+     1 + 1;
+  }
+
+  // Exercicio 2: While e Do-While com erros sintáticos (vai usar o error do while)
+  while a < 10 {
+     1 + 1;
+  }
+
+  // Falta de parenteses no IF
+  if a > 0 {
+     1 + 1;
+  }
+}

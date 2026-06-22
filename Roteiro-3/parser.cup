@@ -1,0 +1,57 @@
+import java_cup.runtime.*;
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD, OP_RELACIONAL;
+terminal ABRE_PARENT, FECHA_PARENT, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH;
+terminal KW_PROGRAM;
+terminal Double NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_list, expr_ptv;
+non terminal Double expr, term, factor, designator;
+non terminal type, varDecl_op, varDecl, varDecl_aux;
+non terminal program;
+
+/* REGRAS */
+program ::= KW_PROGRAM IDENT varDecl_aux ABRE_CHAVE expr_list FECHA_CHAVE;
+
+type ::= IDENT ABRE_COLCH FECHA_COLCH
+       | IDENT ;
+
+varDecl_aux ::= varDecl varDecl_aux
+              | /* vazio */ ;
+
+varDecl ::= type IDENT:id
+            {: System.out.print("Declaracao variavel:" + id); :}
+            varDecl_op PTVIRG
+            // so para dar uma quebra de linha
+            {: System.out.println(""); :};
+
+varDecl_op ::= varDecl_op VIRG IDENT:id
+               {: System.out.print(", " + id); :}
+             | /* vazio */ ;
+
+expr_list ::= expr_list expr_ptv
+            | expr_ptv;
+
+expr_ptv ::= expr:e {: System.out.println("= " + e); :} PTVIRG;
+
+expr ::= expr:e MAIS term:t {: RESULT = e + t; :}
+       | expr:e MENOS term:t {: RESULT = e - t; :}
+       | MENOS term:t {: RESULT = -t; :}
+       | term:t {: RESULT = t.doubleValue(); :};
+
+term ::= factor:f MULT term:t {: RESULT = f * t; :}
+       | factor:f DIV term:t {: RESULT = f / t; :}
+       | factor:f {: RESULT = f.doubleValue(); :};
+
+factor ::= NUMBER:n {: RESULT = n.doubleValue(); :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e.doubleValue(); :}
+         | designator:d {: RESULT = d.doubleValue(); :};
+
+designator ::= designator ABRE_COLCH expr FECHA_COLCH
+               {: RESULT = Double.valueOf(1.0); :}
+             | designator PTO IDENT
+               {: RESULT = Double.valueOf(1.0); :}
+             | IDENT {: RESULT = Double.valueOf(1.0); :};

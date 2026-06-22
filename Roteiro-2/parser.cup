@@ -1,0 +1,59 @@
+import java.util.Scanner;
+import java_cup.runtime.*;
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD;
+terminal ABRE_PARENT, FECHA_PARENT, OP_RELACIONAL, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH, KW_IF;
+terminal Double NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_list, expr_ptv;
+non terminal Double expr, term, factor, designator;
+
+/* REGRAS DE PRODUÇÃO */
+expr_list ::= expr_list expr_ptv
+            | expr_ptv;
+
+expr_ptv ::= expr:e {: 
+                System.out.println("= " + e); 
+             :} PTVIRG; 
+
+expr ::= expr:e MAIS term:t {: RESULT = e + t; :}
+       | expr:e MENOS term:t {: RESULT = e - t; :}
+       | MENOS term:t {: RESULT = -t; :}
+       | term:t {: RESULT = t; :};
+
+term ::= term:t MULT factor:f {: RESULT = t * f; :}
+       | term:t DIV factor:f {: RESULT = t / f; :}
+       | factor:f {: RESULT = f; :};
+
+factor ::= NUMBER:n {: RESULT = n; :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e; :}
+         | designator:d {: RESULT = d; :};
+
+designator ::= designator ABRE_COLCH expr:e FECHA_COLCH {: 
+                double index = e.doubleValue();
+                
+                // ATIVIDADE 2 e 3: Verificação de índice negativo
+                if (index < 0) {
+                    System.out.println("ERRO DE SEMÂNTICA: Índice do vetor não pode ser negativo!");
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.print("Informe um NOVO valor válido (>= 0) para o índice: ");
+                        index = ler.nextDouble();
+                    } while (index < 0);
+                }
+                
+                RESULT = Double.valueOf(1.0); /* Apenas para efeito de teste */
+            :}
+             | designator PTO IDENT {: 
+                RESULT = Double.valueOf(1.0); /* Apenas para efeito de teste */
+            :}
+             | IDENT:id {: 
+                Scanner ler = new Scanner(System.in);
+                double num1;
+                System.out.print("Informe o valor da variavel (" + id + "): ");
+                num1 = ler.nextDouble();
+                RESULT = num1;
+            :};

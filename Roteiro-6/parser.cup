@@ -1,0 +1,160 @@
+import java.util.Scanner;
+import java_cup.runtime.*;
+
+parser code {: 
+    public int contador = 0;
+    public double somatorio = 0.0;
+    public boolean usandoVariavel = false; 
+    
+    public void imprimirRelatorio() {
+        System.out.println("\nForam reconhecidas e computadas:");
+        System.out.println(this.contador + " expressoes");
+        System.out.println("Cujo somatorio foi: " + this.somatorio);
+    }
+:}
+
+/* TERMINAIS */
+terminal PTVIRG, PTO, VIRG, MAIS, MENOS, DIV, MULT, MOD, IGUAL;
+terminal String OP_RELACIONAL;
+terminal ABRE_PARENT, FECHA_PARENT, ABRE_CHAVE, FECHA_CHAVE, ABRE_COLCH, FECHA_COLCH;
+terminal KW_PROGRAM, KW_IF;
+terminal KW_TRUE, KW_FALSE;
+terminal Number NUMBER;
+terminal String IDENT;
+
+/* NÃO TERMINAIS */
+non terminal expr_ptv;
+non terminal Number expr, term, factor, designator;
+non terminal type, varDecl_op, varDecl, varDecl_aux;
+non terminal statement, statement_aux, program;
+non terminal if_stmt, condicao;
+
+/* REGRAS DE PRODUÇÃO */
+program ::= KW_PROGRAM IDENT varDecl_aux ABRE_CHAVE statement_aux FECHA_CHAVE ;
+
+type ::= IDENT ABRE_COLCH FECHA_COLCH
+       | IDENT ;
+
+varDecl_aux ::= varDecl varDecl_aux
+              | /* vazio */ ;
+
+varDecl ::= type IDENT:id
+            {: System.out.print("Declaracao variavel:" + id); :}
+            varDecl_op PTVIRG
+            {: System.out.println(""); :};
+
+varDecl_op ::= varDecl_op VIRG IDENT:id
+               {: System.out.print(", " + id); :}
+             | /* vazio */ ;
+
+statement_aux ::= statement_aux statement
+                | statement ;
+
+statement ::= expr_ptv
+            | designator:d IGUAL expr:e PTVIRG
+              {: System.out.println ("Atribuicao reconhecida: " + e); :}
+            | if_stmt ;
+
+/* REGRA DO IF (ROTEIRO 6) */
+if_stmt ::= {: System.out.print("if("); :}
+            KW_IF ABRE_PARENT condicao FECHA_PARENT
+            ABRE_CHAVE {: System.out.println("){"); :}
+            statement_aux
+            FECHA_CHAVE {: System.out.println("}"); :} ;
+
+condicao ::= expr:e1 OP_RELACIONAL:op expr:e2 {: 
+                boolean resultado = false;
+                double val1 = e1.doubleValue();
+                double val2 = e2.doubleValue();
+                
+                switch (op) {
+                    case "<": resultado = (val1 < val2); break;
+                    case "<=": resultado = (val1 <= val2); break;
+                    case ">": resultado = (val1 > val2); break;
+                    case ">=": resultado = (val1 >= val2); break;
+                    case "==": resultado = (val1 == val2); break;
+                    case "!=": resultado = (val1 != val2); break;
+                    default: System.out.print("*Simbolo desconhecido*");
+                }
+                System.out.print(resultado);
+             :}
+             // ATIVIDADE 2 DO ROTEIRO 6: Aceitando TRUE e FALSE direto na condicao
+             | KW_TRUE {: System.out.print("true"); :}
+             | KW_FALSE {: System.out.print("false"); :}
+             ;
+
+expr_ptv ::= expr:e {: 
+                parser.contador++;
+                parser.somatorio += e.doubleValue();
+                System.out.println("  = " + e); 
+             :} PTVIRG;
+
+expr ::= expr:e MAIS term:t {: RESULT = e.doubleValue() + t.doubleValue(); :}
+       | expr:e MENOS term:t {: RESULT = e.doubleValue() - t.doubleValue(); :}
+       | MENOS term:t {: RESULT = -t.doubleValue(); :}
+       | term:t {: RESULT = t; :};
+
+term ::= factor:f MULT term:t {: RESULT = f.doubleValue() * t.doubleValue(); :}
+       | factor:f DIV term:t {: 
+            double den = t.doubleValue();
+            if (den == 0) {
+                if (parser.usandoVariavel) {
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.println("ERRO DE SEMANTICA: O denominador de variavel nao pode ser zero!");
+                        System.out.print("Informe um novo valor para o denominador: ");
+                        den = ler.nextDouble();
+                    } while (den == 0);
+                } else {
+                    System.out.println("ERRO DE SEMANTICA: Divisao literal por zero! (Operacao abortada)");
+                    den = 1.0; 
+                }
+            }
+            RESULT = f.doubleValue() / den; 
+         :}
+       | factor:f MOD term:t {: 
+            if (f instanceof Integer && t instanceof Integer) {
+                RESULT = f.intValue() % t.intValue();
+            } else {
+                System.out.println("ERRO DE SEMANTICA: A operacao MOD (%) so esta definida para Inteiros!");
+                RESULT = 0; 
+            }
+         :}
+       | factor:f {: RESULT = f; :};
+
+factor ::= NUMBER:n {: 
+             parser.usandoVariavel = false; 
+             RESULT = n; 
+         :}
+         | ABRE_PARENT expr:e FECHA_PARENT {: RESULT = e; :}
+         | designator:d {: RESULT = d; :};
+
+designator ::= designator ABRE_COLCH expr:e FECHA_COLCH {: 
+                double index = e.doubleValue();
+                if (index < 0) {
+                    System.out.println("ERRO DE SEMANTICA: Indice do vetor nao pode ser negativo!");
+                    Scanner ler = new Scanner(System.in);
+                    do {
+                        System.out.print("Informe um NOVO valor valido (>= 0) para o indice: ");
+                        index = ler.nextDouble();
+                    } while (index < 0);
+                }
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0);
+            :}
+             | designator PTO IDENT {: 
+                parser.usandoVariavel = true;
+                RESULT = Double.valueOf(1.0);
+            :}
+             | IDENT:id {: 
+                Scanner ler = new Scanner(System.in);
+                double num1;
+                System.out.print("Informe o valor da variavel (" + id + "): ");
+                num1 = ler.nextDouble();
+                parser.usandoVariavel = true;
+                if (num1 % 1 == 0) {
+                    RESULT = Integer.valueOf((int)num1);
+                } else {
+                    RESULT = Double.valueOf(num1);
+                }
+            :};
